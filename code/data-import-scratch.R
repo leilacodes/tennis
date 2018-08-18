@@ -9,7 +9,7 @@ datafolder <- '../../Data/tennis_wta-master'
 list.files(datafolder)[str_detect(list.files(datafolder), "wta_matches_[:digit:]{4}.csv")]
 
 # Function to import one match file
-rawdata <- read.csv(file.path(datafolder, 'wta_matches_2018.csv'))
+rawdata <- read.csv(file.path(datafolder, 'wta_matches_2014.csv'))
 
 # firstlook(rawdata)
 
