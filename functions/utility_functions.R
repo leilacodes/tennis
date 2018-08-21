@@ -88,7 +88,3 @@ alphabetize_cols <- function(dset) {
   
   dset %>% select_at(.vars = colnames)
 }
-
-sum(duplicated(masterdata$match_id))
-masterdata$match_id[duplicated(masterdata$match_id)] %>% sort()
-masterdata %>% filter(match_id == "2018-M007-238")
