@@ -1,24 +1,12 @@
-options(stringsAsFactors = FALSE)
-library(tidyverse)
-library(RCurl)
-library(data.table)
-source('code/functions.R')
-
 # Import raw data
-datafolder <- '../../Data/tennis_wta-master'
+datafolder
 
 file_list <- list.files(datafolder)[str_detect(list.files(datafolder), 
                                                "wta_matches_[:digit:]{4}.csv")]
 
 # Function to import one match file based on list above
 import_data <- function(x) {
-  indata <- fread(file.path(datafolder, x)) %>% 
-    as.tibble() %>% 
-    filter(!is.na(score), 
-           score != "",
-           str_detect(score, '[:digit:]'), 
-           str_detect(score, '-')) %>% 
-    mutate(match_id = paste(sep = "-", tourney_id, match_num))
+  indata <- import_match_file(x) 
   
   # Don't include 'best of' bc some rows say 5
   tourney_info <- indata %>% 
@@ -51,15 +39,20 @@ import_data <- function(x) {
 masterlists <- lapply(file_list, import_data)
 
 tournament_list <- map_dfr(masterlists, function(x) x[["tourney_info"]])  %>% 
-  mutate(tourney_date = as.Date.character(as.character(tourney_date), "%Y%m%d"))
+  mutate(tourney_date = as.Date.character(as.character(tourney_date), "%Y-%m-%d"))
 
 match_list <- map_dfr(masterlists, function(x) x[["match_info"]]) 
 
 player_info <- map_dfr(masterlists, function(x) x[["player_info"]]) %>% unique()
 
 # QA and clean the tables --------------------------
+firstlook(tournament_list)
+firstlook(match_list)
+firstlook(player_info)
+
+# Check for dupes
 match_list %>% group_by(match_id) %>% filter(n() > 1)
-tournament_list %>% group_by(tourney_id)
+tournament_list %>% group_by(tourney_id) %>% filter(n() > 1)
 
 lapply(player_info, anyDuplicated)
 
@@ -77,14 +70,39 @@ player_info <- player_info %>%
   unique() %>% 
   arrange(player_id)
 
-freq(player_info$player_hand)
+player_info %>% group_by(player_id) %>% filter(n() > 1)
 
 # Most unknown hand is pre-2000
 
 # Aggregate win-loss
-winloss <- match_list %>% 
+# LATER Subtract 1 to count only previous
+match_list <- match_list %>% 
   left_join(tournament_list %>% select(tourney_id, tourney_date)) %>% 
   arrange(tourney_date) %>% 
   group_by(winner_id, loser_id) %>% 
   mutate(matchcount = row_number()) %>% 
-  arrange(winner_id, loser_id, tourney_id)
+  arrange(winner_id, loser_id, tourney_date) 
+
+career_wins_vs <- match_list %>% 
+  arrange(winner_id, tourney_date) %>% 
+  group_by(winner_id, loser_id) %>% 
+  mutate(career_wins = row_number())
+
+career_losses_vs <- match_list %>% 
+  arrange(loser_id, tourney_date) %>% 
+  group_by(loser_id, winner_id) %>% 
+  mutate(career_losses = row_number())
+
+career_wins_surface <- match_list %>% 
+  left_join(tournament_list %>% select(tourney_id, surface)) %>% 
+  arrange(winner_id, surface, tourney_date) %>% 
+  group_by(winner_id, surface) %>% 
+  mutate(career_wins_surface = row_number())
+
+career_losses_surface <- match_list %>% 
+  left_join(tournament_list %>% select(tourney_id, surface)) %>% 
+  arrange(loser_id, surface, tourney_date) %>% 
+  group_by(loser_id, surface) %>% 
+  mutate(career_wins_surface = row_number())
+
+rm(masterlists)
