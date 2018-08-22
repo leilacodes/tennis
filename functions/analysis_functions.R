@@ -1,6 +1,6 @@
 import_match_file <- function(filename) {
   rawdata <- fread(file.path(datafolder, filename),
-                   fill = TRUE) %>% as.tibble()
+                   fill = TRUE)
   
   cleandata <- rawdata %>%  
     drop_na(score) %>% 
