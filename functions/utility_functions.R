@@ -88,3 +88,20 @@ alphabetize_cols <- function(dset) {
   
   dset %>% select_at(.vars = colnames)
 }
+
+# Lift for continuous vars
+plot_ntile_lift <- function(dset, yvar, xvar) {
+  plotdata <- dset %>% 
+    mutate(ntile_var = ntile(!!xvar, n = 40)) %>% 
+    group_by(ntile_var) %>% 
+    summarise(reponse_pct = mean(!!yvar), 
+              n = n())
+  
+  print(plotdata)
+  
+  ggplot(data = plotdata, 
+         aes(x = ntile_var, y = reponse_pct, size = n)) +
+    geom_point() + 
+    labs(title = xvar,
+         subtitle = "20 bins")
+}
