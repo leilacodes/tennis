@@ -1,26 +1,83 @@
 source('functions/setup.R')
 source('code/data_import.R')
 
-# Import files
-# Filter out null scores and withdrawals/retirements
-# Remove columns that had to be cleaned
-dset <- import_match_file('wta_matches_2018.csv') %>%  
-  select(-best_of, -ends_with("hand"), 
-         -ends_with("_ht"),
-         -ends_with("_ioc"))
+# Subset to modeling data
 
-firstlook(dset)
+aggdata <- entry_info %>% filter(year(tourney_date) > 1987)
 
-dset %>% filter(is.na(winner_rank_points) | is.na(loser_rank_points)) %>% View()
+splitdata <- split(aggdata, aggdata$sourcefile)
+
+getlosses <- function(x) {
+  print(x[1,]$sourcefile)
+  
+  players <- x %>% select(winner_id, loser_id) %>% unique()
+  
+  loss_subset <- career_losses_vs %>%
+    select(loser_id, winner_id, tourney_date, career_losses) %>% 
+    inner_join(players) %>% 
+    filter(tourney_date < max(x$tourney_date))
+    
+  output <- x %>% 
+    fuzzy_left_join(loss_subset,
+                    by = c("winner_id" = "loser_id",
+                           "loser_id" = "winner_id", 
+                           "tourney_date" = "tourney_date"), 
+                    match_fun = c(`==`, `==`, `>`)) %>%
+    replace_na(replace = list(career_losses = 0)) %>% 
+    group_by(match_id) %>% 
+    filter(career_losses == max(career_losses)) %>% 
+    select(-ends_with('.y'))
+  
+  return(output)
+}
+
+tic()
+withlosses <- map_dfr(splitdata , getlosses)
+toc()
+
+# Get wins
+getwins <- function(x) {
+  print(x[1,]$sourcefile)
+  
+  players <- x %>% select(winner_id, loser_id) %>% unique()
+  
+  win_subset <- career_wins_vs %>%
+    select(loser_id, winner_id, tourney_date, career_wins) %>% 
+    inner_join(players) %>% 
+    filter(tourney_date < max(x$tourney_date))
+  
+  output <- x %>% 
+    fuzzy_left_join(win_subset,
+                    by = c("winner_id" = "winner_id",
+                           "loser_id" = "loser_id", 
+                           "tourney_date" = "tourney_date"), 
+                    match_fun = c(`==`, `==`, `>`)) %>%
+    replace_na(replace = list(career_wins = 0)) %>% 
+    group_by(match_id) %>% 
+    filter(career_wins == max(career_wins)) %>% 
+    select(-ends_with('.y'))
+  
+  return(output)
+}
+
+tic()
+withwins <- map_dfr(splitdata, getwins)
+toc()
+
+# Whew save the data!
+saveRDS(withlosses, file = "data/withlosses.RDS")
+saveRDS(withwins, filie = "data/withwins.RDS")
+
+# Check that it worked
 
 #QA
-graph_freqs(dset)
+graph_freqs(entry_info)
 
 # Designate each match as a win or loss
 set.seed <- 11271989
 
-outcomedata <- dset %>% 
-  bind_cols(., win = rbernoulli(nrow(dset)))
+outcomedata <- entry_info %>% 
+  bind_cols(., win = rbernoulli(nrow(entry_info)))
 
 splitdata <- split(outcomedata, outcomedata$win)
 
@@ -53,37 +110,59 @@ prep_dset <- function(dset, prefix) {
 }
 
 # Define features (Including pulling in match records)
-prepped_dset <- map_dfr(splitdata, prep_dset) %>% 
+# The first join 
+prepped_dset <- map_dfr(splitdata, prep_dset) %>%
   mutate(rank_point_diff = player_rank_points - opponent_rank_points,
-         age_diff = player_age - opponent_age) %>% 
-  fuzzy_left_join(x = ., 
-                  y = career_losses_vs,
-                  by = c("player_id" = "loser_id", 
-                         "opponent_id" = "winner_id",
-                         "tourney_date" = "tourney_date")
-                  # match_fun = list(`==`, `==`, `>=`))
-                  # Left off: don't run that! only need the max date not all of them
+         age_diff = player_age - opponent_age) 
+
+# Career losses
+tic()
+agg_losses <- map_dfr(split_dset, function(x) {
+  x %>% ste, match_id) %>% 
+    fuzzy_left_join(career_losses_vs %>% select(loser_id, winner_id, tourney_date, career_losses, match_id),  
+                                                            by = c("player_id" = "loser_id",
+                                                                   "opponent_id" = "winner_id",
+                                                                   "tourney_date" = "tourney_date"),
+                    match_fun = list(`==`, `==`, `>`)) %>% 
+    group_by(match_id.x) %>% 
+    replace_na(replace = list(career_losses = 0)) %>% 
+    filter(career_losses == max(career_losses)) %>% 
+    select(-ends_with(".y"), -loser_id, -winner_id)
+})
+toc()
+
+tic()
+agg_wins <- map_dfr(split_dset, function(x) {
+  x %>% select(player_id, opponent_id, tourney_date, match_id) %>% 
+    fuzzy_left_join(career_wins_vs %>% select(loser_id, winner_id, tourney_date, career_wins, match_id),  
+                    by = c("player_id" = "loser_id",
+                           "opponent_id" = "winner_id",
+                           "tourney_date" = "tourney_date"),
+                    match_fun = list(`==`, `==`, `>`)) %>% 
+    group_by(match_id.x) %>% 
+    replace_na(replace = list(career_wins = 0)) %>% 
+    filter(career_wins == max(career_wins)) %>% 
+    select(-ends_with(".y"), -loser_id, -winner_id)
+})
+toc()
+
+  # fuzzy_left_join(x = .,
+  #                 y = career_losses_vs,
+                  # by = c("player_id" = "loser_id",
+                  #        "opponent_id" = "winner_id",
+                  #        "tourney_date" = "tourney_date"),
+                  # match_fun = list(`==`, `==`, `>`)) %>%
+  # fuzzy_anti_join(career_losses_vs %>% select(loser_id, winner_id, tourney_date),
+  #                 by = c("loser_id" = "loser_id",
+  #                        "winner_id" = "winner_id",
+  #                        "tourney_date" = "tourney_date"),
+  #                 match_fun = list(`==`, `==`, `>`))
+
   
 
 firstlook(prepped_dset)
 
 # Add features
-
-plot_ntile_lift <- function(dset, yvar, xvar) {
-  plotdata <- dset %>% 
-    mutate(ntile_var = ntile(!!xvar, n = 40)) %>% 
-  group_by(ntile_var) %>% 
-  summarise(reponse_pct = mean(!!yvar), 
-            n = n())
-  
-  print(plotdata)
-  
-  ggplot(data = plotdata, 
-         aes(x = ntile_var, y = reponse_pct, size = n)) +
-    geom_point() + 
-    labs(title = xvar,
-         subtitle = "20 bins")
-}
 
 # Commented out if no relationship visible
 plotlift <- function(x) {
