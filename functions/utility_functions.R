@@ -105,3 +105,25 @@ plot_ntile_lift <- function(dset, yvar, xvar) {
     labs(title = xvar,
          subtitle = "20 bins")
 }
+
+# Lift for continuous vars
+plot_ntile_lift <- function(dset, yvar, xvar, nbreaks = 20) {
+  plotdata <- dset %>% 
+    mutate(ntile_var = ntile(!!xvar, n = nbreaks)) %>% 
+    group_by(ntile_var) %>% 
+    summarise(reponse_pct = mean(!!yvar), 
+              n = n())
+  
+  print(plotdata)
+  
+  ggplot(data = plotdata, 
+         aes(x = ntile_var, y = reponse_pct, size = n)) +
+    geom_point() + 
+    labs(title = xvar,
+         subtitle = glue("{nbreaks} bins"))
+}
+
+plot_range_lift <- function(dset, yvar, xvar) {
+  plotdata <- prepped_data %>% 
+    mutate(cut_var = cut(!!xvar, breaks = ))
+}
