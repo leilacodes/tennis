@@ -107,23 +107,43 @@ plot_ntile_lift <- function(dset, yvar, xvar) {
 }
 
 # Lift for continuous vars
-plot_ntile_lift <- function(dset, yvar, xvar, nbreaks = 20) {
+plot_lift_ntile <- function(dset, yvar, xvar, nbreaks = 20) {
   plotdata <- dset %>% 
     mutate(ntile_var = ntile(!!xvar, n = nbreaks)) %>% 
     group_by(ntile_var) %>% 
     summarise(reponse_pct = mean(!!yvar), 
               n = n())
   
-  print(plotdata)
-  
   ggplot(data = plotdata, 
          aes(x = ntile_var, y = reponse_pct, size = n)) +
     geom_point() + 
     labs(title = xvar,
-         subtitle = glue("{nbreaks} bins"))
+         subtitle = glue("{nbreaks} bins by percentile"))
+
 }
 
-plot_range_lift <- function(dset, yvar, xvar) {
-  plotdata <- prepped_data %>% 
-    mutate(cut_var = cut(!!xvar, breaks = ))
+
+plot_lift_range <- function(dset, yvar, xvar, nbreaks) {
+  plotdata <- dset %>% 
+    mutate(cut_var = cut(!!xvar, breaks = nbreaks)) %>% 
+  group_by(cut_var) %>% 
+    summarise(response_pct = mean(!!yvar),
+              n = n())
+  
+  ggplot(data = plotdata,
+         aes(x = cut_var, y = response_pct, size = n)) +
+    geom_point() +
+    labs(title = xvar,
+         subtitle = glue("{nbreaks} bins by range"))
+}
+
+plot_lift <- function(dset, yvar, xvar) {
+  if(length(unique(dset %>% select(!!xvar))) > 2) stop("x must be binary")
+  
+  dset %>% 
+    group_by(!!xvar) %>% 
+    summarise(response_pct = mean(!!yvar),
+              n = n()) %>% 
+    mutate(lift = response_pct / (n / nrow(dset))) %>% 
+    filter(lift == max(abs(lift)))
 }
