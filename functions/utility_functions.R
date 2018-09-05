@@ -33,7 +33,7 @@ varinfo <- function(dset) {
   
   return(data.frame(class, ndistinct, nnull) %>% 
            rownames_to_column(var = "colname") %>% 
-           left_join(nblank) %>% left_join(pct0))
+           left_join(nblank, by = "colname") %>% left_join(pct0, by = "colname"))
 }
 
 # Freqs
