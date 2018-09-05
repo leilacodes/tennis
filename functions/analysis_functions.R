@@ -1,3 +1,17 @@
+# recode_entry <- function(x) {
+#   recode(x,
+#          A = "",
+#          ALT = "",
+#          IP = "",
+#          LL = "Lucky Loser",
+#          Q = "Qualifier",
+#          SE = "Special Exempt",
+#          SR = "",
+#          WC = "Wild Card"
+#          )
+# }
+
+
 import_match_file <- function(filename) {
   rawdata <- fread(file.path(datafolder, filename),
                    fill = TRUE)
