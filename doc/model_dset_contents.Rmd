@@ -1,0 +1,27 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+# Modeling Dataset
+
+```{r, include = FALSE}
+# Have to run this manually
+source(file = 'C:/Users/Banhlam/Documents/R PROJECTS/tennis/functions/setup.R')
+library(knitr)
+library(kableExtra)
+
+# Have to run this manually too
+mydata <- readRDS('data/model_dset.RDS')
+```
+
+```{r varinfo}
+varinfo(mydata) %>% 
+  kable() %>% 
+  kable_styling(
+    bootstrap_options = c("striped", 
+                          "hover",
+                          "condensed"),
+    full_width = FALSE,
+    position = "center")
+```
