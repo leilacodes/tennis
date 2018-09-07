@@ -11,6 +11,13 @@
 #          )
 # }
 
+convertscore <- function(setscore) {
+  ifelse(is.na(setscore), 0, 
+         ifelse(str_detect(setscore, "7-6"),
+                1,
+                ifelse(str_detect(setscore, "6-7"),
+                       -1, eval(parse(text = setscore)))))
+}
 
 import_match_file <- function(filename) {
   rawdata <- fread(file.path(datafolder, filename),
