@@ -5,15 +5,16 @@ source('code/data_import.R')
 # aggdata <- entry_info %>% filter(year(tourney_date) > 1987)
 
 # Include only as far back as to include the players on tour in 2016+
-# playerpool <- match_list %>% 
+# playerpool <- match_list %>%
 #   filter(year(tourney_date) >= 2016) %>% select(winner_id, loser_id)
 # 
 # aggdata <- entry_info %>% filter(year(tourney_date) > 1987,
-#                                  (winner_id %in% unique(c(playerpool$winner_id, 
+#                                  (winner_id %in% unique(c(playerpool$winner_id,
 #                                                           playerpool$loser_id)) |
-#                                    loser_id %in% unique(c(playerpool$winner_id, 
+#                                    loser_id %in% unique(c(playerpool$winner_id,
 #                                                           playerpool$loser_id))))
-# 
+# ggplot(data = aggdata %>% mutate(age_diff = winner_age - loser_age)) +
+#   geom_histogram(aes(x = age_diff))
 # aggdata %>% group_by(tourney_date) %>% tally()
 # 
 # #QA
@@ -94,6 +95,36 @@ source('code/data_import.R')
 # saveRDS(prepped_dset, 'data/prepped_dset.RDS')
 
 prepped_dset <- readRDS('data/prepped_dset.RDS')
+
+prepped_dset <- prepped_dset %>% 
+  mutate(nsets = str_count(score, pattern = "-"),
+         ntiebreaks = str_count(score, pattern = "7-6") + str_count(score, pattern = "6-7"),
+         player_qualifier = ifelse(player_entry == "Q", 1, 0),
+         opponent_qualifier = ifelse(opponent_entry == "Q", 1, 0),
+         player_wc = ifelse(player_entry == "WC", 1, 0),
+         opponent_wc = ifelse(opponent_entry == "WC", 1, 0),
+         winloss = career_wins - career_losses,
+         first_match = ifelse(career_wins == 0 & career_losses == 0, 1, 0)) %>% 
+  select(-ends_with("entry"))
+
+
+# Calculate dominance in a match
+# testscores <- prepped_dset %>% filter(ntiebreaks > 2) %>% select(score)
+
+setscores <- prepped_dset %>% separate(col = score, into = c("set1", "set2", "set3"),
+           sep = " ") %>% select(starts_with("set")) %>% 
+  map_dfc(function(x) map(x, convertscore) %>% unlist())%>% 
+  mutate(dominance = set1 + set2 + set3)
+
+model_dset <- prepped_dset %>% bind_cols(setscores)  %>% 
+  mutate(set1 = ifelse(win == FALSE, -set1, set1),
+         set2 = ifelse(win == FALSE, -set2, set2),
+         set3 = ifelse(win == FALSE, -set3, set3),
+         dominance = ifelse(win == FALSE, -dominance, dominance)) %>% 
+  select(-ends_with("rank"), -match_num, -sourcefile, -draw_size, -starts_with("set"), -dominance) 
+
+saveRDS(model_dset, 'data/model_dset.RDS')
+
 # Ranking points changed in 2016 not to count the Olympics
 # Fill in ranking points that are missing?
 # Remove temp dsets
