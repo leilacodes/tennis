@@ -18,7 +18,7 @@ varinfo <- function(dset) {
   require(tibble)
   ndistinct <- lapply(dset, function(x) length(unique(x))) %>% 
     unlist()
-  class <- lapply(dset, function(x) class(x)) %>% unlist()
+  varclass <- lapply(dset, function(x) class(x)) %>% unlist()
   nnull <- lapply(dset, function(x) sum(is.na(x))) %>% unlist()
   nblank <- dset %>% summarise_if(.predicate = is.character,
                                   .funs = function(x) mean(trimws(x) == "") %>%
@@ -31,7 +31,7 @@ varinfo <- function(dset) {
     t() %>% as.data.frame() %>% rownames_to_column(var = "colname") %>% 
     rename(pct0 = V1)
   
-  return(data.frame(class, ndistinct, nnull) %>% 
+  return(data.frame(varclass, ndistinct, nnull) %>% 
            rownames_to_column(var = "colname") %>% 
            left_join(nblank, by = "colname") %>% left_join(pct0, by = "colname"))
 }
@@ -97,7 +97,7 @@ plot_ntile_lift <- function(dset, yvar, xvar) {
     summarise(reponse_pct = mean(!!yvar), 
               n = n())
   
-  print(plotdata)
+  # print(plotdata)
   
   ggplot(data = plotdata, 
          aes(x = ntile_var, y = reponse_pct, size = n)) +
@@ -146,4 +146,6 @@ plot_lift <- function(dset, yvar, xvar) {
               n = n()) %>% 
     mutate(lift = response_pct / (n / nrow(dset))) %>% 
     filter(lift == max(abs(lift)))
+  
+  
 }
