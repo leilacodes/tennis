@@ -1,11 +1,11 @@
 source('../functions/shiny_functions.R')
 
-mydata <- readRDS('../data/model_dset.RDS') %>% 
+bidata <- readRDS('../data/model_dset.RDS') %>% 
   select(-tourney_level, -surface, -round) %>% 
   mutate_if(.predicate = function(x) class(x) == "logical", 
             .funs = function(x) as.numeric(x))
 
-colnames <- varinfo(mydata) %>% select(-ends_with("id")) %>% 
+bicolnames <- varinfo(bidata) %>% select(-ends_with("id")) %>% 
   filter(ndistinct > 20, varclass == "numeric") %>%
   pull(colname) %>% sort()
 
@@ -20,16 +20,16 @@ ui <- fluidPage(
     sidebarPanel(
       selectInput(inputId = "x",
                   label = "Select first variable:", 
-                  choices = colnames, 
-                  selected = colnames[1], 
+                  choices = bicolnames, 
+                  selected = bicolnames[1], 
                   multiple = FALSE,
                   selectize = TRUE,
                   width = NULL, 
                   size = NULL),
       selectInput(inputId = "y",
                   label = "Select second variable:", 
-                  choices = colnames, 
-                  selected = colnames[2], 
+                  choices = bicolnames, 
+                  selected = bicolnames[2], 
                   multiple = FALSE,
                   selectize = TRUE,
                   width = NULL, 
@@ -49,7 +49,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   output$varplot <- renderPlot({
 
-      ggplot(data = mydata) +
+      ggplot(data = bidata) +
         geom_point(aes_string(x = input$x, y = input$y)) + 
         labs(title = glue("Scatterplot of {input$y} vs. {input$x}"))
  
