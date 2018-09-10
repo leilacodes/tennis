@@ -1,3 +1,4 @@
+# Bivariate
 source('../functions/shiny_functions.R')
 
 bidata <- readRDS('../data/model_dset.RDS') %>% 
@@ -26,6 +27,13 @@ ui <- fluidPage(
                   selectize = TRUE,
                   width = NULL, 
                   size = NULL),
+      checkboxGroupInput(inputId = "xtransform",
+                         label = "Transform X?", 
+                         choiceNames = c("log", "sqrt", "sq"),
+                         choiceValues = c("log", "sqrt", "function(x) x^2"),
+                         selected = NULL,
+                         inline = TRUE, 
+                         width = NULL),
       selectInput(inputId = "y",
                   label = "Select second variable:", 
                   choices = bicolnames, 
@@ -33,7 +41,14 @@ ui <- fluidPage(
                   multiple = FALSE,
                   selectize = TRUE,
                   width = NULL, 
-                  size = NULL)
+                  size = NULL),
+      checkboxGroupInput(inputId = "ytransform",
+                         label = "Transform Y?", 
+                         choices = c("log", "sqrt", "sq"),
+                         choiceValues = c("log", "sqrt", "function(x) x^2"),
+                         selected = NULL,
+                         inline = TRUE, 
+                         width = NULL)
     ),
     
     # Show a plot of the generated distribution
@@ -49,10 +64,63 @@ ui <- fluidPage(
 server <- function(input, output) {
   output$varplot <- renderPlot({
 
-      ggplot(data = bidata) +
+    nx <- length(unique(bidata[,input$x]))
+    ny <- length(unique(bidata[,input$y]))
+    
+    if (is.null(input$xtransform) & is.null(input$ytransform)) {
+      
+      plotdata <- bidata
+      
+    } else if (is.null(input$xtransform) &
+               !is.null(input$ytransform)) {
+      
+      plotdata <- bidata %>% 
+        mutate_at(.vars = input$y, .funs = eval(parse(text = input$ytransform)))
+      
+    } else if (!is.null(input$xtransform) &
+               is.null(input$ytransform)) {
+      
+      plotdata <- bidata %>% 
+        mutate_at(.vars = input$x, .funs = eval(parse(text = input$xtransform)))
+      
+    } else if (!is.null(input$xtransform) &
+               !is.null(input$ytransform)) {
+      
+      plotdata <- bidata %>% 
+        mutate_at(.vars = input$x, .funs = eval(parse(text = input$xtransform))) %>% 
+        mutate_at(.vars = input$y, .funs = eval(parse(text = input$ytransform)))
+    }
+    
+    if (nx > 10 & ny > 10) {
+      
+      ggplot(data = plotdata) +
         geom_point(aes_string(x = input$x, y = input$y)) + 
         labs(title = glue("Scatterplot of {input$y} vs. {input$x}"))
- 
+      
+    } else if (nx < 10 & ny > 10) {
+      ggplot(data = plotdata) +
+        geom_histogram(aes_string(x = input$y, 
+                                  group = input$x,
+                                  fill = input$x), 
+                       position = "identity",
+                       alpha = .75) + 
+        labs(title = glue("Density of {input$y} by {input$x}"))
+    } else if (nx > 10 & ny < 10) {
+      ggplot(data = plotdata) +
+        geom_histogram(aes_string(x = input$x, 
+                                  group = input$y,
+                                  fill = input$y), 
+                       position = "identity",
+                       alpha = .75) + 
+        labs(title = glue("Density of {input$x} by {input$y}"))
+    } else {
+      ggplot(data = plotdata) +
+        geom_bar(aes_string(x = input$x, 
+                            group = input$y,
+                            fill = input$y),
+                 position = "dodge") + 
+        labs(title = glue("Frequency of {input$x} by {input$y}"))
+    }
   })
 }
 
