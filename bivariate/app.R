@@ -29,8 +29,8 @@ ui <- fluidPage(
                   size = NULL),
       checkboxGroupInput(inputId = "xtransform",
                          label = "Transform X?", 
-                         choiceNames = c("log", "sqrt", "sq"),
-                         choiceValues = c("log", "sqrt", "function(x) x^2"),
+                         choiceNames = transnames,
+                         choiceValues = transvals,
                          selected = NULL,
                          inline = TRUE, 
                          width = NULL),
@@ -44,8 +44,11 @@ ui <- fluidPage(
                   size = NULL),
       checkboxGroupInput(inputId = "ytransform",
                          label = "Transform Y?", 
-                         choices = c("log", "sqrt", "sq"),
-                         choiceValues = c("log", "sqrt", "function(x) x^2"),
+                         choices = transnames,
+                         #TODO: fix error 'object sq not found'
+                         #TODO: add transformations to univariate page
+                         #TODO: install todo 
+                         choiceValues = transvals,
                          selected = NULL,
                          inline = TRUE, 
                          width = NULL)
