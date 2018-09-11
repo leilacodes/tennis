@@ -7,6 +7,11 @@ library(tictoc)
 source('../functions/utility_functions.R')
 source('../functions/analysis_functions.R')
 
+square <- function(x) x^2
+
+transnames <- c("log", "sqrt", "sq")
+transvals <- c("log", "sqrt", "square")
+
 plot_rate_range <- function(dset, xvar, nbreaks = 20) {
   
   rangegroup <- cut(dset[,xvar], breaks = nbreaks)
