@@ -28,7 +28,7 @@ ui <- fluidPage(
    # Sidebar with a slider input for number of bins 
    sidebarLayout(
       sidebarPanel(
-        selectInput(inputId = "myvar",
+        selectInput(inputId = "univar",
                     label = "Select columns:", 
                     choices = unicolnames, 
                     selected = unicolnames[1], 
@@ -46,7 +46,7 @@ ui <- fluidPage(
       
       # Show a plot of the generated distribution
       mainPanel(
-        plotOutput(outputId = "varplot", 
+        plotOutput(outputId = "uniplot", 
                    width = "100%",
                    height = "400px")
       )
@@ -58,7 +58,7 @@ ui <- fluidPage(
 
 
 server <- function(input, output) {
-  output$varplot <- renderPlot({
+  output$uniplot <- renderPlot({
     
     if(length(input$mytransform) > 1) {
       stop("Max 1 transformation")
@@ -71,22 +71,22 @@ server <- function(input, output) {
     } else {
       
       plotdata <- unidata %>% 
-        mutate_at(.vars = input$myvar, 
+        mutate_at(.vars = input$univar, 
                   .funs = eval(parse(text = input$mytransform)))
       
     }
     
-    if(length(unique(unidata[,input$myvar])) > 20) {
+    if(length(unique(unidata[,input$univar])) > 20) {
       
       ggplot(data = plotdata) +
-        geom_density(aes_string(x = input$myvar)) + 
-        labs(title = glue("Density of Values for {input$myvar}"))
+        geom_density(aes_string(x = input$univar)) + 
+        labs(title = glue("Density of Values for {input$univar}"))
       
     } else {
       
       ggplot(data = plotdata) +
-        geom_bar(aes_string(x = input$myvar)) + 
-        labs(title = glue("Frequency of Values for {input$myvar}"))
+        geom_bar(aes_string(x = input$univar)) + 
+        labs(title = glue("Frequency of Values for {input$univar}"))
       
     } 
     })
