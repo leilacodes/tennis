@@ -9,25 +9,9 @@ source('../functions/analysis_functions.R')
 
 square <- function(x) x^2
 
-transnames <- c("log", "sqrt", "sq")
-transvals <- c("log", "sqrt", "square")
-
-plot_rate_range <- function(dset, xvar, nbreaks = 20) {
-  
-  rangegroup <- cut(dset[,xvar], breaks = nbreaks)
-  
-  plotdata <- dset %>% 
-    bind_cols(rangegroup = rangegroup) %>% 
-  group_by(rangegroup) %>% 
-    summarise(win_rate = mean(win),
-              n = n())
-  
-  ggplot(data = plotdata,
-         aes(x = rangegroup, y = win_rate, size = n)) +
-    geom_point() +
-    labs(title = glue("Win rate of {xvar} by range group"),
-         subtitle = glue("{nbreaks} bins by range"))
-}
+transformations <- c(`Log` = "log",
+                     `Sqrt` = "sqrt",
+                     `Sq` = "square")
 
 plot_lift_range <- function(dset, xvar, nbreaks = 20) {
   
@@ -36,7 +20,7 @@ plot_lift_range <- function(dset, xvar, nbreaks = 20) {
   plotdata <- dset %>% 
     bind_cols(rangegroup = rangegroup) %>% 
     group_by(rangegroup) %>% 
-    summarise(win_rate = mean(win) / (n() / nrow(dset)),
+    summarise(lift = mean(win) / (n() / nrow(dset)),
               n = n())
   
   ggplot(data = plotdata,
@@ -46,14 +30,19 @@ plot_lift_range <- function(dset, xvar, nbreaks = 20) {
          subtitle = glue("{nbreaks} bins by range"))
 }
 
-get_lift <- function(dset, xvar) {
-  if(length(unique(dset[,xvar])) > 2) stop("x must be binary")
+plot_lift <- function(dset, xvar) {
   
-  dset %>% 
+  if(length(unique(dset[,xvar])) > 10) {
+    stop("x must be categorical with under 10 unique values")
+  }
+  
+  plotdata <- dset %>% 
     group_by_at(.vars = xvar) %>% 
     summarise(win_rate = mean(win),
               n = n()) %>% 
-    mutate(lift = win_rate / (n / nrow(dset))) %>% 
-    filter(lift == max(abs(lift)))
+    mutate(lift = win_rate / (n / nrow(dset)))  
+    # filter(lift == max(abs(lift)))
+  
+  ggplot(data = plotdata, aes_string(x = xvar, y = "lift")) + geom_bar(stat = "identity")
   
 }
