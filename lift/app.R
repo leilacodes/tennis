@@ -1,15 +1,11 @@
 source('../functions/shiny_functions.R')
-library(shiny)
-library(dplyr)
-library(ggplot2)
-library(glue)
 
-mydata <- readRDS('../data/model_dset.RDS') %>% 
+liftdata <- readRDS('../data/model_dset.RDS') %>% 
   select(-tourney_level, -surface, -round) %>% 
   mutate_if(.predicate = function(x) class(x) == "logical", 
             .funs = function(x) as.numeric(x))
 
-colnames <- varinfo(mydata) %>% select(-ends_with("id")) %>% 
+liftcolnames <- varinfo(liftdata) %>% select(-ends_with("id")) %>% 
   filter(colname != "win",
          ndistinct > 1, 
          varclass == "logical" |
@@ -28,8 +24,8 @@ ui <- fluidPage(
     sidebarPanel(
       selectInput(inputId = "x",
                   label = "Select X variable:", 
-                  choices = colnames, 
-                  selected = colnames[1], 
+                  choices = liftcolnames, 
+                  selected = liftcolnames[1], 
                   multiple = FALSE,
                   selectize = TRUE,
                   width = NULL, 
@@ -47,9 +43,26 @@ ui <- fluidPage(
 
 # Define server logic required to draw plot
 server <- function(input, output) {
+  
   output$varplot <- renderPlot({
-    plot_lift_range(dset = mydata, yvar = quo(win), xvar =)
+    
+    if(!is.numeric(liftdata[, input$x]) & length(unique(liftdata[, input$x])) > 10) {
+      stop("Numeric or categorical only")
+    }
+    
+    if(length(unique(liftdata[, input$x])) > 10) {
+      
+      plot_lift_range(dset = liftdata, xvar = input$x)
+      
+    } else {
+      
+      plot_lift(dset = liftdata, xvar = input$x)
+      
+    }
+    
+    
   })
+  
 }
 
 # Run the application 
