@@ -1,3 +1,7 @@
+
+#TODO: fix error 'object sq not found'
+#TODO: install todo 
+
 # Bivariate
 source('../functions/shiny_functions.R')
 
@@ -29,8 +33,7 @@ ui <- fluidPage(
                   size = NULL),
       checkboxGroupInput(inputId = "xtransform",
                          label = "Transform X?", 
-                         choiceNames = transnames,
-                         choiceValues = transvals,
+                         choices = transformations,
                          selected = NULL,
                          inline = TRUE, 
                          width = NULL),
@@ -44,11 +47,7 @@ ui <- fluidPage(
                   size = NULL),
       checkboxGroupInput(inputId = "ytransform",
                          label = "Transform Y?", 
-                         choices = transnames,
-                         #TODO: fix error 'object sq not found'
-                         #TODO: add transformations to univariate page
-                         #TODO: install todo 
-                         choiceValues = transvals,
+                         choices = transformations,
                          selected = NULL,
                          inline = TRUE, 
                          width = NULL)
@@ -67,31 +66,29 @@ ui <- fluidPage(
 server <- function(input, output) {
   output$varplot <- renderPlot({
 
+    if(length(input$xtransform) > 1 | length(input$ytransform) > 1) {
+      
+      stop("Max 1 transformation")
+      
+    }
+    
     nx <- length(unique(bidata[,input$x]))
     ny <- length(unique(bidata[,input$y]))
     
-    if (is.null(input$xtransform) & is.null(input$ytransform)) {
+    plotdata <- bidata
+    
+    if (!is.null(input$xtransform)) {
       
-      plotdata <- bidata
-      
-    } else if (is.null(input$xtransform) &
-               !is.null(input$ytransform)) {
-      
-      plotdata <- bidata %>% 
-        mutate_at(.vars = input$y, .funs = eval(parse(text = input$ytransform)))
-      
-    } else if (!is.null(input$xtransform) &
-               is.null(input$ytransform)) {
-      
-      plotdata <- bidata %>% 
+      plotdata <- plotdata %>% 
         mutate_at(.vars = input$x, .funs = eval(parse(text = input$xtransform)))
       
-    } else if (!is.null(input$xtransform) &
-               !is.null(input$ytransform)) {
+    } 
+    
+    if (!is.null(input$ytransform)) {
       
-      plotdata <- bidata %>% 
-        mutate_at(.vars = input$x, .funs = eval(parse(text = input$xtransform))) %>% 
+      plotdata <- plotdata %>% 
         mutate_at(.vars = input$y, .funs = eval(parse(text = input$ytransform)))
+      
     }
     
     if (nx > 10 & ny > 10) {
