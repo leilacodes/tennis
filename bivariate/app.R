@@ -11,7 +11,11 @@ bidata <- readRDS('../data/model_dset.RDS') %>%
             .funs = function(x) as.numeric(x))
 
 bicolnames <- varinfo(bidata) %>% select(-ends_with("id")) %>% 
-  filter(ndistinct > 20, varclass == "numeric") %>%
+  filter(colname != "win",
+         ndistinct > 1, 
+         varclass == "logical" |
+           varclass == "numeric" | 
+           (varclass == "character" & ndistinct < 20)) %>%
   pull(colname) %>% sort()
 
 # Define UI for application that draws a histogram
