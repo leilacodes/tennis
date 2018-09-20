@@ -1,4 +1,4 @@
-# Shiny dashboard
+# Lift app
 # TODO: Why is the content not showing?
 source('../functions/shiny_functions.R')
 
@@ -77,7 +77,7 @@ server <- function(input, output) {
       
     }
     
-    if(length(unique(liftdata[, input$liftvar])) > 300) {
+    if(length(unique(liftdata[, input$liftvar])) > 10) {
       
       plot_lift_range(dset = plotdata, xvar = input$liftvar)
       
