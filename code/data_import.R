@@ -1,7 +1,7 @@
 source('functions/setup.R')
 
 # Import raw data
-datafolder
+datafolder <- '../tennis_wta'
 
 file_list <- list.files(datafolder)[str_detect(list.files(datafolder), 
                                                "wta_matches_[:digit:]{4}.csv")]
@@ -123,16 +123,16 @@ career_losses_vs <- match_list %>%
   group_by(loser_id, winner_id) %>% 
   mutate(career_losses = row_number())  %>% ungroup()
 
-career_wins_surface <- match_list %>% 
-  left_join(tournament_list %>% select(tourney_id, surface)) %>% 
-  arrange(winner_id, surface, tourney_date) %>% 
-  group_by(winner_id, surface) %>% 
-  mutate(career_wins_surface = row_number()) %>% ungroup()
-
-career_losses_surface <- match_list %>% 
-  left_join(tournament_list %>% select(tourney_id, surface)) %>% 
-  arrange(loser_id, surface, tourney_date) %>% 
-  group_by(loser_id, surface) %>% 
-  mutate(career_wins_surface = row_number()) %>% ungroup()
+# career_wins_surface <- match_list %>% 
+#   left_join(tournament_list %>% select(tourney_id, surface)) %>% 
+#   arrange(winner_id, surface, tourney_date) %>% 
+#   group_by(winner_id, surface) %>% 
+#   mutate(career_wins_surface = row_number()) %>% ungroup()
+# 
+# career_losses_surface <- match_list %>% 
+#   left_join(tournament_list %>% select(tourney_id, surface)) %>% 
+#   arrange(loser_id, surface, tourney_date) %>% 
+#   group_by(loser_id, surface) %>% 
+#   mutate(career_wins_surface = row_number()) %>% ungroup()
 
 rm(masterlists)
