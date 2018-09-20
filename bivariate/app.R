@@ -6,17 +6,12 @@
 source('../functions/shiny_functions.R')
 
 bidata <- readRDS('../data/model_dset.RDS') %>% 
-  select(-tourney_level, -surface, -round) %>% 
   mutate_if(.predicate = function(x) class(x) == "logical", 
             .funs = function(x) as.numeric(x))
 
 bicolnames <- varinfo(bidata) %>% select(-ends_with("id")) %>% 
-  filter(colname != "win",
-         ndistinct > 1, 
-         varclass == "logical" |
-           varclass == "numeric" | 
-           (varclass == "character" & ndistinct < 20)) %>%
-  pull(colname) %>% sort()
+  pull(colname) %>%
+  sort()
 
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -102,7 +97,8 @@ server <- function(input, output) {
         labs(title = glue("Scatterplot of {input$y} vs. {input$x}"))
       
     } else if (nx < 10 & ny > 10) {
-      ggplot(data = plotdata) +
+      ggplot(data = plotdata %>% 
+               mutate_at(.vars = input$x, .funs = as.factor)) +
         geom_histogram(aes_string(x = input$y, 
                                   group = input$x,
                                   fill = input$x), 
@@ -110,7 +106,8 @@ server <- function(input, output) {
                        alpha = .75) + 
         labs(title = glue("Density of {input$y} by {input$x}"))
     } else if (nx > 10 & ny < 10) {
-      ggplot(data = plotdata) +
+      ggplot(data = plotdata %>% 
+               mutate_at(.vars = input$y, .funs = as.factor)) +
         geom_histogram(aes_string(x = input$x, 
                                   group = input$y,
                                   fill = input$y), 
@@ -118,7 +115,8 @@ server <- function(input, output) {
                        alpha = .75) + 
         labs(title = glue("Density of {input$x} by {input$y}"))
     } else {
-      ggplot(data = plotdata) +
+      ggplot(data = plotdata %>% 
+               mutate_at(.vars = c(input$x, input$y), .funs = as.factor)) +
         geom_bar(aes_string(x = input$x, 
                             group = input$y,
                             fill = input$y),
